@@ -254,7 +254,7 @@ struct SpmUgmTokenizer {
     if (config.tokenizer_class_ == "MarianTokenizer") {
       byte_fallback_ = true;
       tokenizer_add_space_prefix_ = true;
-      tokenizer_remove_extra_whitespaces_ = true;  // Changed to true to remove extra spaces
+      tokenizer_remove_extra_whitespaces_ = false;  // Changed back to false to preserve spaces
       tokenizer_treat_whitespace_as_suffix_ = true;
       tokenizer_escape_whitespaces_ = true;
       add_eos_token_ = true;
@@ -428,7 +428,7 @@ struct SpmUgmTokenizer {
         if (c != ' ') {
           if (!processing_non_ws) {
             processing_non_ws = true;
-            if ((shall_prepend_space && !is_space_prepended) || shall_merge_spaces) {
+            if ((shall_prepend_space && !is_space_prepended)) {
               normalized.append(space);
               is_space_prepended = true;
             }
@@ -513,7 +513,7 @@ struct SpmUgmTokenizer {
     normalized.reserve(input.size() * 3);
     std::vector<size_t> norm_to_orig(input.size() * 3);
 
-    // For NMT normalization, use escaped space consistently
+    // const std::string space = tokenizer_escape_whitespaces_ ? std::string(spm_escaped_space) : " ";
     const std::string space = std::string(spm_escaped_space);
 
     bool shall_prepend_space = !tokenizer_treat_whitespace_as_suffix_ && tokenizer_add_space_prefix_;
@@ -522,7 +522,6 @@ struct SpmUgmTokenizer {
 
     bool is_space_prepended = false;
     bool processing_non_ws = false;
-    bool last_was_space = false;
 
     size_t input_len = input.size();
 
@@ -537,24 +536,19 @@ struct SpmUgmTokenizer {
         if (c != ' ') {
           if (!processing_non_ws) {
             processing_non_ws = true;
-            // Only add space if we're at the beginning and need prefix space
-            if (shall_prepend_space && !is_space_prepended && normalized.empty()) {
+            if (shall_prepend_space && !is_space_prepended) {
               normalized.append(space);
               is_space_prepended = true;
             }
-            // Add space between words if we had a space before
-            else if (last_was_space && !normalized.empty() && !shall_merge_spaces) {
-              normalized.append(space);
-            }
           }
           normalized.push_back(c);
-          last_was_space = false;
         } else {
           if (processing_non_ws) {
             processing_non_ws = false;
-            last_was_space = true;
           }
-          // Don't add space immediately, wait for next non-space character
+          if (!shall_merge_spaces) {
+            normalized.append(space);
+          }
         }
       }
 
