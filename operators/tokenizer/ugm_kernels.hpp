@@ -794,7 +794,7 @@ class SpmUgmDecoder {
     auto pos = token.find(spm_escaped_space);
     if (pos == 0) {
       token = ws + token.substr(spm_escaped_space.length());
-    } else if (pos + 3 == token.length()) {
+    } else if (pos != std::string::npos && pos + 3 == token.length()) {
       token = token.substr(0, pos) + ws;
     }
     if (!case_encoding_) {
